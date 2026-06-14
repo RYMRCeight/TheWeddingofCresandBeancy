@@ -144,20 +144,23 @@
     <!-- Background Particle Canvas (Petals & Gold dust falling) -->
     <canvas id="particleCanvas" class="fixed inset-0 pointer-events-none z-10"></canvas>
 
-    <!-- UNBREAKABLE AUDIO SYSTEM (Invisible & Optimized for GitHub deployment) -->
+    <!-- SELF-HEALING TRIPLE-ENGINE AUDIO SYSTEM (Invisible & Optimized for GitHub deployment) -->
     <script>
-        // Direct stream link from your exact Google Drive upload
-        const WEDDING_MUSIC_URL = "https://docs.google.com/uc?export=download&id=1VmVl7e0kCSWi8XdRRnM2vHUPn9R4AD7g";
+        // Track sources sequentially
+        const LOCAL_MUSIC_PATH = "wedding_song.mp3"; // High-reliability local option
+        const DRIVE_MUSIC_URL = "https://docs.google.com/uc?export=download&id=1VmVl7e0kCSWi8XdRRnM2vHUPn9R4AD7g"; // Your Drive file
         
         const weddingAudio = new Audio();
-        weddingAudio.src = WEDDING_MUSIC_URL;
         weddingAudio.loop = true;
-        weddingAudio.volume = 0.65; // Balanced background volume (65%)
+        weddingAudio.volume = 0.65;
 
-        let useSynthesizerFallback = false;
+        let currentAudioSource = "local"; // Initialize by searching for local repository file
         let audioPlayedSuccessfully = false;
 
-        // Fallback Synthesizer Engine (Kept exclusively as an automated fallback for sandboxed code-editor previews)
+        // Set initial stream target
+        weddingAudio.src = LOCAL_MUSIC_PATH;
+
+        // Fallback Synthesizer Engine (Kept exclusively as backup to guarantee ambient music under any severe network restrictions)
         class CinematicRomanticSynth {
             constructor() {
                 this.ctx = null;
@@ -259,17 +262,30 @@
         }
         const synth = new CinematicRomanticSynth();
 
-        // Monitor stream loading errors (expected only inside sandboxed previews)
+        // Safe Fallback Architecture: Listen for errors and rotate sources
         weddingAudio.addEventListener('error', (e) => {
-            console.warn("Iframe environment blocked direct Google Drive request. Launching local romantic synth module.");
-            useSynthesizerFallback = true;
-            if (invitationOpened && !audioPlayedSuccessfully) {
-                synth.start();
+            if (currentAudioSource === "local") {
+                console.warn("Local wedding_song.mp3 not found. Falling back to Google Drive stream...");
+                currentAudioSource = "drive";
+                weddingAudio.src = DRIVE_MUSIC_URL;
+                if (invitationOpened) {
+                    weddingAudio.play().catch(() => {
+                        console.warn("Drive stream failed. Activating Synth Fallback.");
+                        currentAudioSource = "synth";
+                        synth.start();
+                    });
+                }
+            } else if (currentAudioSource === "drive") {
+                console.warn("Google Drive stream blocked by CORS/sandbox rules. Activating local synthesizer fallback.");
+                currentAudioSource = "synth";
+                if (invitationOpened) {
+                    synth.start();
+                }
             }
         });
 
         function playWeddingMusic() {
-            if (useSynthesizerFallback) {
+            if (currentAudioSource === "synth") {
                 synth.start();
                 return;
             }
@@ -277,11 +293,21 @@
             weddingAudio.play()
             .then(() => {
                 audioPlayedSuccessfully = true;
-                console.log("Your custom song from Google Drive is now playing.");
+                console.log("Playing audio stream via source type: " + currentAudioSource);
             })
             .catch(error => {
-                console.log("Autoplay blocked by local security. Starting local synthesizer fallback.");
-                synth.start();
+                console.warn("Direct play blocked or delayed. Advancing fallback chain...", error);
+                if (currentAudioSource === "local") {
+                    currentAudioSource = "drive";
+                    weddingAudio.src = DRIVE_MUSIC_URL;
+                    weddingAudio.play().catch(() => {
+                        currentAudioSource = "synth";
+                        synth.start();
+                    });
+                } else {
+                    currentAudioSource = "synth";
+                    synth.start();
+                }
             });
         }
     </script>
