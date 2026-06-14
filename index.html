@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Invitation | Cres & Beancy</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Great+Vibes&display=swap" rel="stylesheet">
+    <!-- GSAP Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            100: '#f9e7b9',
+                            200: '#f3d382',
+                            300: '#e7ba52',
+                            400: '#dba127',
+                            500: '#c58b1b', // primary gold
+                            600: '#a37113',
+                        },
+                        orchid: {
+                            DEFAULT: '#854494', // The exact purple shade of the invitation
+                            50: '#fbf5fc',
+                            100: '#f5e8fa',
+                            200: '#eccff5',
+                            300: '#dba5eb',
+                            400: '#c272dc',
+                            500: '#a447c2',
+                            600: '#8533a0',
+                            700: '#6d2783',
+                            800: '#5c226e',
+                            900: '#4a1b59',
+                            950: '#1a0521',
+                        }
+                    },
+                    fontFamily: {
+                        cinzel: ['"Cinzel Decorative"', 'serif'],
+                        playfair: ['"Playfair Display"', 'serif'],
+                        montserrat: ['"Montserrat"', 'sans-serif'],
+                        signature: ['"Great Vibes"', 'cursive'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            background-color: #1a0521;
+            overflow-x: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a0521;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c58b1b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #e7ba52;
+        }
+        /* Envelope Open Styles */
+        .envelope-container {
+            perspective: 1500px;
+        }
+        .envelope {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s ease;
+        }
+        .envelope.open .top-flap {
+            transform: rotateX(180deg);
+            z-index: 0;
+        }
+        .envelope.open .invitation-card {
+            transform: translateY(-50%) translateZ(10px);
+            opacity: 1;
+        }
+        .top-flap {
+            transform-origin: top;
+            transition: transform 0.6s ease 0.4s, z-index 0.1s ease 0.6s;
+            z-index: 10;
+        }
+        /* Exact Arch silhouette from invitation photo */
+        .arch-card {
+            border-radius: 24rem 24rem 2rem 2rem;
+            position: relative;
+            background-color: #854494;
+            border: 2px solid #e7ba52;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        @media (max-width: 640px) {
+            .arch-card {
+                border-radius: 12rem 12rem 1.5rem 1.5rem;
+            }
+        }
+        /* Arch outer decorative thin border */
+        .arch-card::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            left: 6px;
+            right: 6px;
+            border: 1px solid rgba(231, 186, 82, 0.6);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+        /* Floating animations */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(1.5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        .animate-float-slow {
+            animation: float 9s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="font-montserrat text-orchid-50 antialiased selection:bg-gold-500 selection:text-orchid-950">
+
+    <!-- Background Particle Canvas (Petals & Gold dust falling) -->
+    <canvas id="particleCanvas" class="fixed inset-0 pointer-events-none z-10"></canvas>
+
+    <!-- UNBREAKABLE AUDIO SYSTEM (Invisible & Optimized for GitHub deployment) -->
+    <script>
+        // Direct stream link from your exact Google Drive upload
+        const WEDDING_MUSIC_URL = "https://docs.google.com/uc?export=download&id=1VmVl7e0kCSWi8XdRRnM2vHUPn9R4AD7g";
+        
+        const weddingAudio = new Audio();
+        weddingAudio.src = WEDDING_MUSIC_URL;
+        weddingAudio.loop = true;
+        weddingAudio.volume = 0.65; // Balanced background volume (65%)
+
+        let useSynthesizerFallback = false;
+        let audioPlayedSuccessfully = false;
+
+        // Fallback Synthesizer Engine (Kept exclusively as an automated fallback for sandboxed code-editor previews)
+        class CinematicRomanticSynth {
+            constructor() {
+                this.ctx = null;
+                this.isPlaying = false;
+                this.timerId = null;
+                this.chords = [
+                    [66, 70, 73, 77, 80], 
+                    [63, 66, 70, 73, 77], 
+                    [59, 63, 66, 70, 74], 
+                    [61, 65, 68, 71, 75]  
+                ];
+                this.chordIndex = 0;
+                this.delayNode = null;
+                this.feedbackNode = null;
+                this.masterGain = null;
+            }
+
+            init() {
+                if (this.ctx) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.setValueAtTime(0.55, this.ctx.currentTime);
+
+                this.delayNode = this.ctx.createDelay(2.0);
+                this.delayNode.delayTime.setValueAtTime(0.45, this.ctx.currentTime);
+
+                this.feedbackNode = this.ctx.createGain();
+                this.feedbackNode.gain.setValueAtTime(0.40, this.ctx.currentTime);
+
+                this.delayNode.connect(this.feedbackNode);
+                this.feedbackNode.connect(this.delayNode);
+
+                this.masterGain.connect(this.ctx.destination);
+                this.delayNode.connect(this.masterGain);
+            }
+
+            playNote(midi, startTimeOffset, duration, volume, isBass = false) {
+                if (!this.ctx) return;
+                const freq = 440 * Math.pow(2, (midi - 69) / 12);
+                
+                const osc = this.ctx.createOscillator();
+                osc.type = isBass ? 'sine' : 'triangle';
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTimeOffset);
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(isBass ? 220 : 800, this.ctx.currentTime + startTimeOffset);
+
+                const gainNode = this.ctx.createGain();
+                gainNode.gain.setValueAtTime(0, this.ctx.currentTime + startTimeOffset);
+                gainNode.gain.linearRampToValueAtTime(volume, this.ctx.currentTime + startTimeOffset + 0.15);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + startTimeOffset + duration);
+
+                osc.connect(filter);
+                filter.connect(gainNode);
+
+                if (!isBass) {
+                    gainNode.connect(this.delayNode);
+                }
+                gainNode.connect(this.masterGain);
+
+                osc.start(this.ctx.currentTime + startTimeOffset);
+                osc.stop(this.ctx.currentTime + startTimeOffset + duration);
+            }
+
+            scheduleNextArpeggio() {
+                if (!this.isPlaying) return;
+
+                const currentChord = this.chords[this.chordIndex];
+                this.playNote(currentChord[0] - 24, 0, 4.2, 0.08, true);
+                this.playNote(currentChord[2] - 12, 0.1, 4.0, 0.04, true);
+
+                const melodyPattern = [0, 1, 2, 3, 4, 3, 2, 1];
+                melodyPattern.forEach((chordStep, idx) => {
+                    const midiNote = currentChord[chordStep];
+                    const noteDelay = idx * 0.45;
+                    const noteVolume = 0.045 - (idx * 0.002);
+                    this.playNote(midiNote, noteDelay, 3.2, noteVolume, false);
+                });
+
+                this.chordIndex = (this.chordIndex + 1) % this.chords.length;
+                this.timerId = setTimeout(() => this.scheduleNextArpeggio(), 4200);
+            }
+
+            start() {
+                this.init();
+                if (this.isPlaying) return;
+                this.isPlaying = true;
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                this.scheduleNextArpeggio();
+            }
+
+            stop() {
+                this.isPlaying = false;
+                if (this.timerId) clearTimeout(this.timerId);
+            }
+        }
+        const synth = new CinematicRomanticSynth();
+
+        // Monitor stream loading errors (expected only inside sandboxed previews)
+        weddingAudio.addEventListener('error', (e) => {
+            console.warn("Iframe environment blocked direct Google Drive request. Launching local romantic synth module.");
+            useSynthesizerFallback = true;
+            if (invitationOpened && !audioPlayedSuccessfully) {
+                synth.start();
+            }
+        });
+
+        function playWeddingMusic() {
+            if (useSynthesizerFallback) {
+                synth.start();
+                return;
+            }
+
+            weddingAudio.play()
+            .then(() => {
+                audioPlayedSuccessfully = true;
+                console.log("Your custom song from Google Drive is now playing.");
+            })
+            .catch(error => {
+                console.log("Autoplay blocked by local security. Starting local synthesizer fallback.");
+                synth.start();
+            });
+        }
+    </script>
+
+
+    <!-- ENVELOPE INTRO OVERLAY (No Date Displayed while Closed) -->
+    <div id="envelopeSection" class="fixed inset-0 z-40 bg-gradient-to-br from-orchid-950 via-orchid-900 to-black flex flex-col justify-center items-center px-4 overflow-hidden">
+        
+        <!-- Text Above Envelope -->
+        <div class="text-center mb-8 max-w-md animate-float" id="envelopeInstructions">
+            <span class="text-gold-300 font-cinzel text-xs tracking-[0.3em] block mb-3 uppercase">By the grace of God</span>
+            <h2 class="font-playfair text-3xl text-orchid-50 italic">The Celebration of Holy Matrimony</h2>
+            <h1 class="font-signature text-8xl sm:text-9xl text-gold-200 mt-2 leading-none filter drop-shadow-md">Cres &amp; Beancy</h1>
+            
+            <div class="flex items-center justify-center gap-3 my-4">
+                <div class="h-[1px] w-8 bg-gradient-to-r from-transparent to-gold-400"></div>
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-gold-400"></i>
+                <div class="h-[1px] w-8 bg-gradient-to-l from-transparent to-gold-400"></div>
+            </div>
+
+            <p class="text-gold-400 text-sm mt-4 font-medium tracking-widest animate-pulse cursor-pointer uppercase font-cinzel" onclick="openInvitation()">
+                ✦ Tap Seal to Unveil ✦
+            </p>
+        </div>
+
+        <!-- 3D Interactive Envelope Container -->
+        <div class="envelope-container w-full max-w-md aspect-[4/3] flex items-center justify-center relative">
+            
+            <div id="mainEnvelope" class="envelope w-full h-full relative cursor-pointer" onclick="openInvitation()">
+                
+                <!-- Envelope Back Panel -->
+                <div class="absolute inset-0 bg-orchid-900 rounded-lg shadow-2xl border border-gold-500/10 flex items-center justify-center"></div>
+
+                <!-- Invitation Card Preview inside -->
+                <div id="envelopeCard" class="invitation-card absolute left-1/2 bottom-[5%] -translate-x-1/2 w-[90%] h-[90%] bg-gradient-to-br from-orchid-800 to-orchid-950 rounded-lg z-0 border border-gold-300/30 p-4 shadow-inner opacity-0 pointer-events-none transition-all duration-1000 flex flex-col justify-center items-center text-center">
+                    <div class="w-full h-full border border-gold-500/40 flex flex-col justify-center items-center p-4">
+                        <span class="font-cinzel text-[10px] text-gold-300 tracking-[0.25em] mb-1 uppercase">Save Our Date</span>
+                        <h3 class="font-signature text-6xl text-gold-200 mb-2 leading-none">Cres &amp; Beancy</h3>
+                        <p class="text-[9px] tracking-[0.2em] text-orchid-300 uppercase mt-2">A Love Orchestrated by Heaven</p>
+                    </div>
+                </div>
+
+                <!-- Top Flap -->
+                <div class="top-flap absolute top-0 left-0 right-0 h-1/2 bg-orchid-800 rounded-t-lg origin-top border-t border-gold-300/30" style="clip-path: polygon(0 0, 100% 0, 50% 100%);"></div>
+
+                <!-- Left & Right Flaps -->
+                <div class="absolute inset-0 bg-transparent z-20 pointer-events-none" style="clip-path: polygon(0 0, 50% 50%, 0 100%); background: linear-gradient(to right, rgba(92,34,110,0.95), rgba(92,34,110,0.7)); border-radius: 8px 0 0 8px;"></div>
+                <div class="absolute inset-0 bg-transparent z-20 pointer-events-none" style="clip-path: polygon(100% 0, 100% 100%, 50% 50%); background: linear-gradient(to left, rgba(92,34,110,0.95), rgba(92,34,110,0.7)); border-radius: 0 8px 8px 0;"></div>
+
+                <!-- Bottom Flap -->
+                <div class="absolute bottom-0 left-0 right-0 h-[60%] z-20 pointer-events-none" style="clip-path: polygon(0 100%, 50% 30%, 100% 100%); background: linear-gradient(to top, rgba(74,27,89,0.98), rgba(74,27,89,0.9)); border-radius: 0 0 8px 8px; border-bottom: 1px solid rgba(197,139,27,0.3);"></div>
+
+                <!-- Golden Wax Seal Button -->
+                <div id="waxSeal" class="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 z-30 transition-all duration-500 hover:scale-110 active:scale-95">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gold-300 via-gold-500 to-gold-600 shadow-lg border-2 border-gold-200 flex items-center justify-center relative">
+                        <div class="absolute inset-1 rounded-full border border-gold-100/30 flex items-center justify-center font-cinzel text-xs text-orchid-950 font-bold tracking-widest">
+                            C&B
+                        </div>
+                        <div class="absolute -top-1 -right-1 w-3 h-3 bg-gold-200 rounded-full animate-ping opacity-60"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <p class="text-[11px] text-orchid-400 font-light mt-8 tracking-widest uppercase">Tap to unveil the secret of true love</p>
+    </div>
+
+
+    <!-- MAIN CONTENT INVITATION PAGE (Shown after Opening Envelope) -->
+    <div id="invitationMain" class="opacity-0 hidden min-h-screen relative z-20 flex flex-col">
+        
+        <!-- Header -->
+        <header class="w-full py-6 px-8 flex justify-between items-center bg-gradient-to-b from-orchid-950 to-transparent relative z-30">
+            <span class="font-cinzel text-gold-300 text-base sm:text-lg tracking-[0.2em] font-bold">CRES &amp; BEANCY</span>
+            <span class="font-montserrat text-[10px] tracking-widest uppercase text-gold-200 border border-gold-400/30 px-3 py-1 rounded-full bg-orchid-950/40">28 NOV 2026</span>
+        </header>
+
+        <!-- SECTION 1: MASTER REPLICA ARCH CARD -->
+        <main class="flex-grow flex flex-col justify-center items-center px-4 py-8 relative">
+            
+            <div class="w-full max-w-xl mx-auto arch-card text-center relative z-20 overflow-hidden px-6 py-16 sm:px-12 sm:py-24" id="heroCard">
+                
+                <!-- TOP WATERCOLOR FLORAL CORNER ACCENTS -->
+                <!-- Top Left Flowers -->
+                <div class="absolute -top-6 -left-6 w-32 h-32 sm:w-44 sm:h-44 pointer-events-none opacity-90 select-none">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <path d="M40 100 C 60 70, 100 60, 120 40 C 140 20, 150 50, 130 90 C 110 130, 80 140, 40 100" fill="url(#purpleGrad1)" opacity="0.8"/>
+                        <path d="M20 70 C 40 40, 80 30, 100 10 C 120 -10, 130 20, 110 60 C 90 100, 60 110, 20 70" fill="url(#pinkGrad1)" opacity="0.6"/>
+                        <path d="M60 40 Q 80 20 100 30 Q 80 50 60 40" fill="#e7ba52" opacity="0.5"/>
+                        <path d="M30 60 Q 50 40 70 50 Q 50 70 30 60" fill="#c58b1b" opacity="0.5"/>
+                        <circle cx="80" cy="50" r="18" fill="url(#flowerCenter)" opacity="0.9"/>
+                        <circle cx="45" cy="75" r="12" fill="url(#flowerCenter2)" opacity="0.95"/>
+                        <defs>
+                            <radialGradient id="purpleGrad1" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#be74cf"/>
+                                <stop offset="100%" stop-color="#854494" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="pinkGrad1" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#fbcfe8"/>
+                                <stop offset="100%" stop-color="#be74cf" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="flowerCenter" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#fdf2f8"/>
+                                <stop offset="40%" stop-color="#d946ef"/>
+                                <stop offset="100%" stop-color="#701a75" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="flowerCenter2" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#fae8ff"/>
+                                <stop offset="60%" stop-color="#c084fc"/>
+                                <stop offset="100%" stop-color="#581c87" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                    </svg>
+                </div>
+
+                <!-- Top Right Flowers -->
+                <div class="absolute -top-6 -right-6 w-32 h-32 sm:w-44 sm:h-44 pointer-events-none opacity-90 select-none transform scale-x-[-1]">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <path d="M40 100 C 60 70, 100 60, 120 40 C 140 20, 150 50, 130 90 C 110 130, 80 140, 40 100" fill="url(#purpleGrad1)" opacity="0.8"/>
+                        <path d="M20 70 C 40 40, 80 30, 100 10 C 120 -10, 130 20, 110 60 C 90 100, 60 110, 20 70" fill="url(#pinkGrad1)" opacity="0.6"/>
+                        <path d="M60 40 Q 80 20 100 30 Q 80 50 60 40" fill="#e7ba52" opacity="0.5"/>
+                        <circle cx="80" cy="50" r="18" fill="url(#flowerCenter)" opacity="0.9"/>
+                        <circle cx="45" cy="75" r="12" fill="url(#flowerCenter2)" opacity="0.95"/>
+                    </svg>
+                </div>
+
+                <!-- BOTTOM WATERCOLOR FLORAL CORNER ACCENTS -->
+                <!-- Bottom Left Flowers -->
+                <div class="absolute -bottom-6 -left-6 w-36 h-36 sm:w-52 sm:h-52 pointer-events-none opacity-95 select-none">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <path d="M40 160 C 60 130, 100 120, 120 100 C 140 80, 150 110, 130 150 C 110 190, 80 200, 40 160" fill="url(#purpleGrad1)" opacity="0.85"/>
+                        <path d="M20 130 C 40 100, 80 90, 100 70 C 120 50, 130 80, 110 120 C 90 160, 60 170, 20 130" fill="url(#pinkGrad2)" opacity="0.75"/>
+                        <path d="M70 120 Q 90 100 110 110 Q 90 130 70 120" fill="#e7ba52" opacity="0.6"/>
+                        <path d="M40 140 Q 60 120 80 130 Q 60 150 40 140" fill="#c58b1b" opacity="0.6"/>
+                        <circle cx="85" cy="135" r="22" fill="url(#flowerCenter)" opacity="0.9"/>
+                        <circle cx="45" cy="115" r="15" fill="url(#flowerCenter2)" opacity="0.95"/>
+                        <circle cx="115" cy="155" r="14" fill="url(#flowerCenter2)" opacity="0.85"/>
+                        <defs>
+                            <radialGradient id="pinkGrad2" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#fbcfe8"/>
+                                <stop offset="60%" stop-color="#ec4899"/>
+                                <stop offset="100%" stop-color="#be74cf" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                    </svg>
+                </div>
+
+                <!-- Bottom Right Flowers -->
+                <div class="absolute -bottom-6 -right-6 w-36 h-36 sm:w-52 sm:h-52 pointer-events-none opacity-95 select-none transform scale-x-[-1]">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <path d="M40 160 C 60 130, 100 120, 120 100 C 140 80, 150 110, 130 150 C 110 190, 80 200, 40 160" fill="url(#purpleGrad1)" opacity="0.85"/>
+                        <path d="M20 130 C 40 100, 80 90, 100 70 C 120 50, 130 80, 110 120 C 90 160, 60 170, 20 130" fill="url(#pinkGrad2)" opacity="0.75"/>
+                        <path d="M70 120 Q 90 100 110 110 Q 90 130 70 120" fill="#e7ba52" opacity="0.6"/>
+                        <circle cx="85" cy="135" r="22" fill="url(#flowerCenter)" opacity="0.9"/>
+                        <circle cx="45" cy="115" r="15" fill="url(#flowerCenter2)" opacity="0.95"/>
+                    </svg>
+                </div>
+
+                <!-- TOP DECORATIVE FILIGREE -->
+                <div class="flex items-center justify-center mb-6">
+                    <svg class="w-24 h-6 text-gold-300" viewBox="0 0 100 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                        <path d="M10 12 C 25 2, 35 22, 50 12 C 65 2, 75 22, 90 12" stroke-linecap="round"/>
+                        <circle cx="50" cy="12" r="2" fill="currentColor"/>
+                        <circle cx="35" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="65" cy="12" r="1" fill="currentColor"/>
+                    </svg>
+                </div>
+
+                <!-- BLESSING OPENER -->
+                <p class="text-gold-200 text-[11px] sm:text-[13px] tracking-[0.2em] uppercase font-semibold leading-relaxed max-w-sm mx-auto">
+                    By the grace of God and with the<br>blessings of our families
+                </p>
+                <p class="text-orchid-100 text-[10px] sm:text-xs tracking-[0.3em] uppercase mt-3 mb-8 font-medium">WE,</p>
+
+                <!-- THE GROOM & BRIDE NAMES -->
+                <div class="my-4 space-y-1 sm:space-y-2">
+                    <h1 class="font-signature text-8.5xl sm:text-10xl text-gold-100 leading-none filter drop-shadow-md">Cres</h1>
+                    <span class="block font-playfair italic text-xl sm:text-2xl text-orchid-200 my-1">and</span>
+                    <h1 class="font-signature text-8.5xl sm:text-10xl text-gold-100 leading-none filter drop-shadow-md">Beancy</h1>
+                </div>
+
+                <!-- HEART FILIGREE DIVIDER -->
+                <div class="flex items-center justify-center my-8">
+                    <svg class="w-32 h-6 text-gold-300" viewBox="0 0 120 20" fill="none" stroke="currentColor" stroke-width="1.2">
+                        <path d="M10 10 H 45 M75 10 H 110" stroke-linecap="round"/>
+                        <path d="M50 10 C50 7, 55 5, 60 10 C65 5, 70 7, 70 10 C70 14, 60 18, 60 18 C60 18, 50 14, 50 10 Z" fill="currentColor"/>
+                    </svg>
+                </div>
+
+                <!-- INVITATION STATEMENT -->
+                <p class="text-orchid-100 text-[11px] sm:text-xs tracking-wider uppercase max-w-sm mx-auto leading-relaxed mb-8">
+                    Cordially invite you to join us as we celebrate our<br>
+                    <span class="text-gold-200 font-semibold tracking-widest">Holy Matrimony on</span>
+                </p>
+
+                <!-- THE DATE SPEC BLOCK -->
+                <div class="max-w-xs mx-auto flex items-center justify-between py-5 border-t border-b border-gold-300/30 bg-orchid-900/30 rounded-xl px-4 relative">
+                    
+                    <!-- Left wing filigree -->
+                    <div class="text-gold-300 flex items-center shrink-0">
+                        <svg class="w-6 h-6 rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 12 C 10 8, 14 16, 18 12 M 12 6 L 12 18"/>
+                        </svg>
+                    </div>
+
+                    <!-- Date & Day elements -->
+                    <div class="flex items-center gap-4 w-full justify-center">
+                        <div class="text-center">
+                            <p class="font-playfair text-xl sm:text-2xl text-gold-100 font-bold tracking-wide">28 NOV 2026</p>
+                        </div>
+                        <div class="h-8 w-[1px] bg-gold-400/40"></div>
+                        <div class="text-left">
+                            <p class="text-[10px] sm:text-xs tracking-widest text-orchid-200 uppercase font-semibold">SATURDAY</p>
+                            <p class="text-[9px] sm:text-[10px] tracking-wider text-gold-300 font-medium">AT 3:00 PM</p>
+                        </div>
+                    </div>
+
+                    <!-- Right wing filigree -->
+                    <div class="text-gold-300 flex items-center shrink-0">
+                        <svg class="w-6 h-6 -rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 12 C 10 8, 14 16, 18 12 M 12 6 L 12 18"/>
+                        </svg>
+                    </div>
+
+                </div>
+
+                <!-- THE VENUE BLOCK -->
+                <div class="space-y-3 mt-8">
+                    <p class="text-[11px] sm:text-xs text-orchid-200 tracking-[0.15em] uppercase italic">
+                        The Ceremony and Reception will be held at
+                    </p>
+                    <p class="font-playfair text-2xl sm:text-3xl text-gold-100 font-bold leading-tight tracking-wide">
+                        Marzon Convention Center
+                    </p>
+                    
+                    <!-- Small floral dividing bullet -->
+                    <div class="flex items-center justify-center gap-1.5 py-2">
+                        <div class="w-1.5 h-1.5 bg-gold-300 rounded-full"></div>
+                        <div class="w-1 h-1 bg-gold-400 rounded-full"></div>
+                        <div class="w-1.5 h-1.5 bg-gold-300 rounded-full"></div>
+                    </div>
+
+                    <!-- Location address in capitalized font -->
+                    <p class="text-[10px] sm:text-[11px] font-medium tracking-[0.2em] uppercase text-orchid-200 max-w-sm mx-auto leading-relaxed">
+                        Jaime Cardinal Sin Avenue<br>
+                        Andagao, Kalibo, Aklan
+                    </p>
+                </div>
+
+                <!-- SAVE THE DATE SCRIPT & BOTTOM FILIGREE -->
+                <div class="mt-10 space-y-3">
+                    <p class="font-signature text-5xl sm:text-6xl text-gold-200">Save the Date</p>
+                    
+                    <div class="flex items-center justify-center">
+                        <svg class="w-20 h-6 text-gold-300/80" viewBox="0 0 100 24" fill="none" stroke="currentColor" stroke-width="1.0">
+                            <path d="M20 12 C 35 18, 45 6, 50 12 C 55 18, 65 6, 80 12" stroke-linecap="round"/>
+                            <path d="M45 12 C45 10, 48 8, 50 12 C52 8, 55 10, 55 12 C55 14, 50 16, 50 16 C50 16, 45 14, 45 12 Z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Interactive Calendar Download button integration inside primary card -->
+                <div class="mt-8 flex justify-center relative z-30">
+                    <button onclick="downloadCalendarInvite()" class="flex items-center gap-2 bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-orchid-950 px-6 py-2.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-lg hover:shadow-gold-500/20 transition-all duration-300 active:scale-95">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Add to Calendar
+                    </button>
+                </div>
+                
+                <!-- Scroll down guidance -->
+                <div class="mt-10 flex flex-col items-center gap-1 text-gold-400 animate-bounce opacity-80">
+                    <span class="text-[9px] uppercase tracking-[0.2em]">Explore Specifics</span>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </div>
+
+            </div>
+        </main>
+
+
+        <!-- SECTION 2: THE COUNTDOWN -->
+        <section class="py-16 px-4 bg-gradient-to-b from-transparent via-orchid-950/80 to-transparent relative z-20">
+            <div class="max-w-xl mx-auto text-center" id="countdownContainer">
+                <span class="font-cinzel text-[11px] tracking-[0.25em] text-gold-400 uppercase block mb-4">Counting Down to Forever</span>
+                <h3 class="font-playfair text-2xl sm:text-3xl text-orchid-50 mb-8 italic leading-snug">
+                    Days until 
+                    <span class="font-signature text-5xl sm:text-6.5xl text-gold-200 block sm:inline-block mx-1 leading-none">Cres &amp; Beancy's</span> 
+                    Covenant
+                </h3>
+                
+                <div class="grid grid-cols-4 gap-2.5 sm:gap-4 max-w-md mx-auto">
+                    <div class="bg-orchid-900/60 backdrop-blur-md border border-gold-500/30 rounded-xl p-3 sm:p-5 flex flex-col justify-center items-center shadow-md">
+                        <span id="days" class="font-playfair text-3xl sm:text-4xl text-gold-200 font-bold">00</span>
+                        <span class="text-[9px] tracking-wider uppercase text-orchid-300 mt-1">Days</span>
+                    </div>
+                    <div class="bg-orchid-900/60 backdrop-blur-md border border-gold-500/30 rounded-xl p-3 sm:p-5 flex flex-col justify-center items-center shadow-md">
+                        <span id="hours" class="font-playfair text-3xl sm:text-4xl text-gold-200 font-bold">00</span>
+                        <span class="text-[9px] tracking-wider uppercase text-orchid-300 mt-1">Hours</span>
+                    </div>
+                    <div class="bg-orchid-900/60 backdrop-blur-md border border-gold-500/30 rounded-xl p-3 sm:p-5 flex flex-col justify-center items-center shadow-md">
+                        <span id="minutes" class="font-playfair text-3xl sm:text-4xl text-gold-200 font-bold">00</span>
+                        <span class="text-[9px] tracking-wider uppercase text-orchid-300 mt-1">Mins</span>
+                    </div>
+                    <div class="bg-orchid-900/60 backdrop-blur-md border border-gold-500/30 rounded-xl p-3 sm:p-5 flex flex-col justify-center items-center shadow-md">
+                        <span id="seconds" class="font-playfair text-3xl sm:text-4xl text-gold-200 font-bold">00</span>
+                        <span class="text-[9px] tracking-wider uppercase text-orchid-300 mt-1">Secs</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SECTION 3: THE VENUE MAP & DETAILS -->
+        <section class="py-16 px-4 relative z-20">
+            <div class="max-w-xl mx-auto gold-border bg-orchid-900/40 backdrop-blur-md rounded-2xl p-6 sm:p-10 text-center" id="venueCard">
+                <i data-lucide="map-pin" class="w-8 h-8 text-gold-300 mx-auto mb-4 animate-float"></i>
+                <span class="font-cinzel text-xs tracking-[0.25em] text-gold-300 uppercase">The Destination</span>
+                <h2 class="font-playfair text-3xl text-orchid-50 mt-1 mb-6">Ceremony &amp; Reception Details</h2>
+                
+                <h3 class="font-bold text-xl text-gold-200 font-cinzel">Marzon Convention Center</h3>
+                <p class="text-sm text-orchid-200 mt-1 max-w-sm mx-auto font-light leading-relaxed">
+                    Jaime Cardinal Sin Avenue, Andagao, Kalibo, Aklan, Philippines
+                </p>
+                <p class="text-xs text-gold-300 italic mt-2">November 28, 2026 at 3:00 PM</p>
+
+                <!-- Map Button -->
+                <div class="mt-8 flex justify-center">
+                    <a href="https://maps.google.com/?q=Marzon+Convention+Center+Kalibo+Aklan" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 border border-gold-500 hover:bg-gold-500 hover:text-orchid-950 text-gold-300 px-6 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300">
+                        <i data-lucide="navigation" class="w-3.5 h-3.5"></i> Open in Google Maps
+                    </a>
+                </div>
+
+                <!-- Dress Code Details -->
+                <div class="mt-12 pt-8 border-t border-gold-500/20 text-center">
+                    <span class="font-cinzel text-xs tracking-widest text-gold-300 uppercase block mb-3">Dress Code Guide</span>
+                    <p class="text-xs text-orchid-200 leading-relaxed max-w-sm mx-auto">
+                        We ask our guests to dress in <strong class="text-gold-200">Formal Attire</strong>. 
+                        We would be delighted if you aligned with our theme's color palette:
+                    </p>
+                    <div class="flex justify-center gap-3 mt-4">
+                        <span class="w-6 h-6 rounded-full bg-[#1a0521] border border-gold-300 shadow-md" title="Royal Orchid Purple"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#854494] border border-gold-300 shadow-md" title="Orchid Mauve"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#dba5eb] border border-gold-300 shadow-md" title="Soft Lavender"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#c58b1b] border border-gold-300 shadow-md" title="Polished Gold"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#fdf2f8] border border-gold-300 shadow-md" title="Ivory Cream"></span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- SECTION 4: EXQUISITE RESERVATION INFO CARD -->
+        <section class="py-16 px-4 relative z-20">
+            <div class="max-w-xl mx-auto gold-border bg-gradient-to-b from-orchid-900/80 to-orchid-950/90 backdrop-blur-md rounded-2xl p-8 sm:p-12 shadow-2xl text-center relative overflow-hidden" id="reservationCard">
+                
+                <!-- Delicate Gold Deco Inner Ring/Frame -->
+                <div class="absolute inset-4 border border-gold-500/20 rounded-xl pointer-events-none"></div>
+                
+                <div class="relative z-10 space-y-6">
+                    <i data-lucide="sparkles" class="w-8 h-8 text-gold-300 mx-auto animate-float-slow"></i>
+                    
+                    <span class="font-cinzel text-xs tracking-[0.3em] text-gold-300 uppercase block">Guest Invitation Spec</span>
+                    
+                    <h2 class="font-playfair text-3xl sm:text-4xl text-orchid-50 italic">Seat Reservation</h2>
+                    
+                    <div class="w-16 h-[1px] bg-gold-400 mx-auto"></div>
+
+                    <!-- Highlighted Seats -->
+                    <div class="py-6 px-4 bg-orchid-950/60 rounded-xl inline-block border border-gold-500/30 shadow-inner">
+                        <span class="block text-[10px] tracking-[0.25em] text-orchid-300 uppercase mb-2">Reserved in your honor</span>
+                        <p class="font-cinzel text-2xl sm:text-3xl text-gold-200 font-bold tracking-wide">
+                            We have reserved 2 seats for you
+                        </p>
+                    </div>
+
+                    <p class="text-xs sm:text-sm text-orchid-200 max-w-md mx-auto leading-relaxed">
+                        We have meticulously curated arrangements for your comfort. We look forward to celebrating this historic union in your elegant presence.
+                    </p>
+
+                    <p class="text-[10px] tracking-widest text-gold-400 uppercase font-semibold">
+                        ✦ Marzon Convention Center • Kalibo ✦
+                    </p>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- FOOTER -->
+        <footer class="w-full py-16 px-4 bg-gradient-to-t from-black/80 to-transparent text-center border-t border-gold-500/10 mt-auto relative z-20">
+            <h4 class="font-signature text-6.5xl sm:text-7.5xl text-gold-200 leading-none filter drop-shadow-md">Cres &amp; Beancy</h4>
+            <p class="font-cinzel text-[10px] tracking-[0.3em] text-orchid-300 uppercase mt-4">We await your delightful presence with love</p>
+            <p class="text-[9px] text-orchid-500 uppercase tracking-widest mt-12">&copy; 2026 Cres &amp; Beancy. All Rights Reserved.</p>
+        </footer>
+
+    </div>
+
+
+    <!-- JAVASCRIPT ANIMATIONS & INTERACTIONS -->
+    <script>
+        // Init Lucide Icons
+        lucide.createIcons();
+
+        // 1. Particle Canvas System (Soft purple petals & gold dust)
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class ElegantParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * -canvas.height;
+                this.size = Math.random() * 5 + 2;
+                this.speedY = Math.random() * 0.8 + 0.3;
+                this.speedX = Math.random() * 0.6 - 0.3;
+                this.opacity = Math.random() * 0.7 + 0.2;
+                this.type = Math.random() > 0.4 ? 'sparkle' : 'petal';
+                this.rotation = Math.random() * 360;
+                this.spinSpeed = Math.random() * 1.5 - 0.75;
+            }
+
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.rotation += this.spinSpeed;
+
+                if (this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.translate(this.x, this.y);
+                ctx.rotate((this.rotation * Math.PI) / 180);
+
+                if (this.type === 'sparkle') {
+                    ctx.fillStyle = '#f3d382';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#dba127';
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = Math.random() > 0.5 ? '#be74cf' : '#fbcfe8';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.size * 1.5, this.size, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Generate Particles
+        for (let i = 0; i < 75; i++) {
+            particles.push(new ElegantParticle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+
+        // 2. Open Invitation Envelope Animation
+        let invitationOpened = false;
+        function openInvitation() {
+            if (invitationOpened) return;
+            invitationOpened = true;
+
+            const envelope = document.getElementById('mainEnvelope');
+            const envelopeSection = document.getElementById('envelopeSection');
+            const invitationMain = document.getElementById('invitationMain');
+
+            envelope.classList.add('open');
+
+            // Play Google Drive custom song stream (or synth fallback) instantly on tap
+            playWeddingMusic();
+
+            // Golden sparks explosion
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#c58b1b', '#e7ba52', '#a447c2', '#4a1b59']
+            });
+
+            // GSAP Transition Timeline
+            gsap.timeline({
+                onComplete: () => {
+                    setTimeout(() => {
+                        window.scrollTo({
+                            top: 100,
+                            behavior: 'smooth'
+                        });
+                    }, 1200);
+                }
+            })
+            .to('#waxSeal', { duration: 0.4, scale: 0, opacity: 0, ease: 'back.in' })
+            .to('#envelopeInstructions', { duration: 0.5, y: -50, opacity: 0 }, '<')
+            .to('#envelopeCard', { duration: 0.8, y: '-130%', opacity: 1, ease: 'power2.out' }, '>-0.2')
+            .to(envelopeSection, { duration: 1, opacity: 0, y: '-100%', ease: 'power3.inOut' })
+            .set(envelopeSection, { display: 'none' })
+            .set(invitationMain, { display: 'flex' })
+            .to(invitationMain, { duration: 1.2, opacity: 1, ease: 'power2.out' }, '<+0.2')
+            .from('#heroCard', { duration: 1.5, scale: 0.9, opacity: 0, ease: 'power4.out' }, '<+0.2');
+        }
+
+
+        // 3. Countdown Timer Engine
+        const weddingDate = new Date("Nov 28, 2026 15:00:00").getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = weddingDate - now;
+
+            if (distance < 0) {
+                document.getElementById('days').innerHTML = "00";
+                document.getElementById('hours').innerHTML = "00";
+                document.getElementById('minutes').innerHTML = "00";
+                document.getElementById('seconds').innerHTML = "00";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById('days').innerHTML = days.toString().padStart(2, '0');
+            document.getElementById('hours').innerHTML = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').innerHTML = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').innerHTML = seconds.toString().padStart(2, '0');
+        }
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+
+        // 4. Calendar Integration Handler (ICS Download)
+        function downloadCalendarInvite() {
+            const title = "Cres & Beancy's Holy Matrimony";
+            const description = "By the grace of God and with the blessings of our families we cordially invite you to join us as we celebrate our holy union. Dress Code: Formal. Reserved: 2 Seats.";
+            const locationName = "Marzon Convention Center, Jaime Cardinal Sin Avenue, Andagao, Kalibo, Aklan";
+            const startDate = "20261128T150000"; // Nov 28, 2026 3:00 PM
+            const endDate = "20261128T220000";   // Nov 28, 2026 10:00 PM
+
+            const icsContent = 
+                "BEGIN:VCALENDAR\n" +
+                "VERSION:2.0\n" +
+                "BEGIN:VEVENT\n" +
+                "SUMMARY:" + title + "\n" +
+                "DESCRIPTION:" + description + "\n" +
+                "LOCATION:" + locationName + "\n" +
+                "DTSTART:" + startDate + "\n" +
+                "DTEND:" + endDate + "\n" +
+                "END:VEVENT\n" +
+                "END:VCALENDAR";
+
+            const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Cres_Beancy_Wedding_Invite.ics";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
+</body>
+</html>
