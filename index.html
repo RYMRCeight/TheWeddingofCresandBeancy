@@ -144,166 +144,56 @@
     <!-- Background Particle Canvas (Petals & Gold dust falling) -->
     <canvas id="particleCanvas" class="fixed inset-0 pointer-events-none z-10"></canvas>
 
-    <!-- UNBREAKABLE STATE-MACHINE SOUND SYSTEM -->
+    <!-- EXCLUSIVE CUSTOM WEDDING SONG PLAYER SETUP (No synthesizers) -->
     <script>
-        // Track music sources
-        const LOCAL_MUSIC_PATH = "wedding_song.mp3"; // High-reliability local option matching your file
-        const DRIVE_MUSIC_URL = "https://docs.google.com/uc?export=download&id=1VmVl7e0kCSWi8XdRRnM2vHUPn9R4AD7g"; // Backup Drive file
+        const LOCAL_MUSIC_PATH = "wedding_song.mp3"; // Primary option: the file uploaded in your repo
+        const DRIVE_MUSIC_URL = "https://docs.google.com/uc?export=download&id=1VmVl7e0kCSWi8XdRRnM2vHUPn9R4AD7g"; // Secondary direct Drive backup link
         
+        let audioPlayedSuccessfully = false;
+        let triedDriveFallback = false;
+
+        // Dedicated custom HTML audio element
         const weddingAudio = new Audio();
         weddingAudio.loop = true;
-        weddingAudio.volume = 0.65;
-
-        let audioPlayedSuccessfully = false;
-        let currentAudioStage = 0; // 0 = local (wedding_song.mp3), 1 = drive, 2 = synth fallback
-
-        // Fallback Synthesizer Engine (Only acts as safety fallback under strict client policies)
-        class CinematicRomanticSynth {
-            constructor() {
-                this.ctx = null;
-                this.isPlaying = false;
-                this.timerId = null;
-                this.chords = [
-                    [66, 70, 73, 77, 80], 
-                    [63, 66, 70, 73, 77], 
-                    [59, 63, 66, 70, 74], 
-                    [61, 65, 68, 71, 75]  
-                ];
-                this.chordIndex = 0;
-                this.delayNode = null;
-                this.feedbackNode = null;
-                this.masterGain = null;
-            }
-
-            init() {
-                if (this.ctx) return;
-                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                this.masterGain = this.ctx.createGain();
-                this.masterGain.gain.setValueAtTime(0.55, this.ctx.currentTime);
-
-                this.delayNode = this.ctx.createDelay(2.0);
-                this.delayNode.delayTime.setValueAtTime(0.45, this.ctx.currentTime);
-
-                this.feedbackNode = this.ctx.createGain();
-                this.feedbackNode.gain.setValueAtTime(0.40, this.ctx.currentTime);
-
-                this.delayNode.connect(this.feedbackNode);
-                this.feedbackNode.connect(this.delayNode);
-
-                this.masterGain.connect(this.ctx.destination);
-                this.delayNode.connect(this.masterGain);
-            }
-
-            playNote(midi, startTimeOffset, duration, volume, isBass = false) {
-                if (!this.ctx) return;
-                const freq = 440 * Math.pow(2, (midi - 69) / 12);
-                
-                const osc = this.ctx.createOscillator();
-                osc.type = isBass ? 'sine' : 'triangle';
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTimeOffset);
-
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(isBass ? 220 : 800, this.ctx.currentTime + startTimeOffset);
-
-                const gainNode = this.ctx.createGain();
-                gainNode.gain.setValueAtTime(0, this.ctx.currentTime + startTimeOffset);
-                gainNode.gain.linearRampToValueAtTime(volume, this.ctx.currentTime + startTimeOffset + 0.15);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + startTimeOffset + duration);
-
-                osc.connect(filter);
-                filter.connect(gainNode);
-
-                if (!isBass) {
-                    gainNode.connect(this.delayNode);
-                }
-                gainNode.connect(this.masterGain);
-
-                osc.start(this.ctx.currentTime + startTimeOffset);
-                osc.stop(this.ctx.currentTime + startTimeOffset + duration);
-            }
-
-            scheduleNextArpeggio() {
-                if (!this.isPlaying) return;
-
-                const currentChord = this.chords[this.chordIndex];
-                this.playNote(currentChord[0] - 24, 0, 4.2, 0.08, true);
-                this.playNote(currentChord[2] - 12, 0.1, 4.0, 0.04, true);
-
-                const melodyPattern = [0, 1, 2, 3, 4, 3, 2, 1];
-                melodyPattern.forEach((chordStep, idx) => {
-                    const midiNote = currentChord[chordStep];
-                    const noteDelay = idx * 0.45;
-                    const noteVolume = 0.045 - (idx * 0.002);
-                    this.playNote(midiNote, noteDelay, 3.2, noteVolume, false);
-                });
-
-                this.chordIndex = (this.chordIndex + 1) % this.chords.length;
-                this.timerId = setTimeout(() => this.scheduleNextArpeggio(), 4200);
-            }
-
-            start() {
-                this.init();
-                if (this.isPlaying) return;
-                this.isPlaying = true;
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-                this.scheduleNextArpeggio();
-            }
-
-            stop() {
-                this.isPlaying = false;
-                if (this.timerId) clearTimeout(this.timerId);
-            }
-        }
-        const synth = new CinematicRomanticSynth();
+        weddingAudio.volume = 0.65; // Pleasant 65% background volume
 
         function playWeddingMusic() {
             if (audioPlayedSuccessfully) return;
 
-            if (currentAudioStage === 0) {
-                console.log("Attempting local wedding_song.mp3 play...");
-                weddingAudio.src = LOCAL_MUSIC_PATH;
-                weddingAudio.play()
-                .then(() => {
-                    audioPlayedSuccessfully = true;
-                    console.log("Success: Local wedding_song.mp3 is playing.");
-                })
-                .catch(err => {
-                    console.warn("Local play blocked or failed. Advancing chain...", err);
-                    triggerNextAudioStage();
-                });
-            } else if (currentAudioStage === 1) {
-                console.log("Attempting Google Drive direct playback fallback...");
-                weddingAudio.src = DRIVE_MUSIC_URL;
-                weddingAudio.play()
-                .then(() => {
-                    audioPlayedSuccessfully = true;
-                    console.log("Success: Drive backup music stream is playing.");
-                })
-                .catch(err => {
-                    console.warn("Drive backup stream failed. Advancing to Synth Fallback.", err);
-                    triggerNextAudioStage();
-                });
-            } else {
-                console.log("Activating Ambient Synthesizer fallback.");
-                synth.start();
-            }
+            console.log("Wax seal clicked: Loading custom song...");
+
+            // Try playing your exact local wedding_song.mp3 file first
+            weddingAudio.src = LOCAL_MUSIC_PATH;
+            weddingAudio.play()
+            .then(() => {
+                audioPlayedSuccessfully = true;
+                console.log("Success: playing local wedding_song.mp3 from directory!");
+            })
+            .catch(err => {
+                console.warn("Local play promise rejected. Trying Drive direct backup link...", err);
+                playDriveFallback();
+            });
         }
 
-        function triggerNextAudioStage() {
-            if (audioPlayedSuccessfully) return;
-            currentAudioStage++;
-            if (invitationOpened) {
-                playWeddingMusic();
-            }
+        function playDriveFallback() {
+            if (triedDriveFallback || audioPlayedSuccessfully) return;
+            triedDriveFallback = true;
+
+            weddingAudio.src = DRIVE_MUSIC_URL;
+            weddingAudio.play()
+            .then(() => {
+                audioPlayedSuccessfully = true;
+                console.log("Success: playing direct Google Drive music backup stream!");
+            })
+            .catch(err => {
+                console.error("Both local MP3 file and backup Drive stream failed to play.", err);
+            });
         }
 
-        // Catch load/resource error events securely
+        // Listen for standard loading errors on the audio element to trigger the Drive fallback
         weddingAudio.addEventListener('error', (e) => {
-            console.warn("Audio loading error caught for stage " + currentAudioStage + ". Moving to next stage.");
-            triggerNextAudioStage();
+            console.warn("Audio element reported resource load issue. Retrying via backup Drive link...");
+            playDriveFallback();
         });
     </script>
 
@@ -795,7 +685,7 @@
 
             envelope.classList.add('open');
 
-            // Play Google Drive custom song stream (or synth fallback) instantly on tap
+            // Play Google Drive custom song stream (or local fallback) instantly on tap
             playWeddingMusic();
 
             // Golden sparks explosion
