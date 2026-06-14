@@ -144,23 +144,20 @@
     <!-- Background Particle Canvas (Petals & Gold dust falling) -->
     <canvas id="particleCanvas" class="fixed inset-0 pointer-events-none z-10"></canvas>
 
-    <!-- SELF-HEALING TRIPLE-ENGINE AUDIO SYSTEM (Invisible & Optimized for GitHub deployment) -->
+    <!-- UNBREAKABLE STATE-MACHINE SOUND SYSTEM -->
     <script>
-        // Track sources sequentially
-        const LOCAL_MUSIC_PATH = "wedding_song.mp3"; // High-reliability local option
-        const DRIVE_MUSIC_URL = "https://docs.google.com/uc?export=download&id=1VmVl7e0kCSWi8XdRRnM2vHUPn9R4AD7g"; // Your Drive file
+        // Track music sources
+        const LOCAL_MUSIC_PATH = "wedding_song.mp3"; // High-reliability local option matching your file
+        const DRIVE_MUSIC_URL = "https://docs.google.com/uc?export=download&id=1VmVl7e0kCSWi8XdRRnM2vHUPn9R4AD7g"; // Backup Drive file
         
         const weddingAudio = new Audio();
         weddingAudio.loop = true;
         weddingAudio.volume = 0.65;
 
-        let currentAudioSource = "local"; // Initialize by searching for local repository file
         let audioPlayedSuccessfully = false;
+        let currentAudioStage = 0; // 0 = local (wedding_song.mp3), 1 = drive, 2 = synth fallback
 
-        // Set initial stream target
-        weddingAudio.src = LOCAL_MUSIC_PATH;
-
-        // Fallback Synthesizer Engine (Kept exclusively as backup to guarantee ambient music under any severe network restrictions)
+        // Fallback Synthesizer Engine (Only acts as safety fallback under strict client policies)
         class CinematicRomanticSynth {
             constructor() {
                 this.ctx = null;
@@ -262,54 +259,52 @@
         }
         const synth = new CinematicRomanticSynth();
 
-        // Safe Fallback Architecture: Listen for errors and rotate sources
-        weddingAudio.addEventListener('error', (e) => {
-            if (currentAudioSource === "local") {
-                console.warn("Local wedding_song.mp3 not found. Falling back to Google Drive stream...");
-                currentAudioSource = "drive";
-                weddingAudio.src = DRIVE_MUSIC_URL;
-                if (invitationOpened) {
-                    weddingAudio.play().catch(() => {
-                        console.warn("Drive stream failed. Activating Synth Fallback.");
-                        currentAudioSource = "synth";
-                        synth.start();
-                    });
-                }
-            } else if (currentAudioSource === "drive") {
-                console.warn("Google Drive stream blocked by CORS/sandbox rules. Activating local synthesizer fallback.");
-                currentAudioSource = "synth";
-                if (invitationOpened) {
-                    synth.start();
-                }
-            }
-        });
-
         function playWeddingMusic() {
-            if (currentAudioSource === "synth") {
-                synth.start();
-                return;
-            }
+            if (audioPlayedSuccessfully) return;
 
-            weddingAudio.play()
-            .then(() => {
-                audioPlayedSuccessfully = true;
-                console.log("Playing audio stream via source type: " + currentAudioSource);
-            })
-            .catch(error => {
-                console.warn("Direct play blocked or delayed. Advancing fallback chain...", error);
-                if (currentAudioSource === "local") {
-                    currentAudioSource = "drive";
-                    weddingAudio.src = DRIVE_MUSIC_URL;
-                    weddingAudio.play().catch(() => {
-                        currentAudioSource = "synth";
-                        synth.start();
-                    });
-                } else {
-                    currentAudioSource = "synth";
-                    synth.start();
-                }
-            });
+            if (currentAudioStage === 0) {
+                console.log("Attempting local wedding_song.mp3 play...");
+                weddingAudio.src = LOCAL_MUSIC_PATH;
+                weddingAudio.play()
+                .then(() => {
+                    audioPlayedSuccessfully = true;
+                    console.log("Success: Local wedding_song.mp3 is playing.");
+                })
+                .catch(err => {
+                    console.warn("Local play blocked or failed. Advancing chain...", err);
+                    triggerNextAudioStage();
+                });
+            } else if (currentAudioStage === 1) {
+                console.log("Attempting Google Drive direct playback fallback...");
+                weddingAudio.src = DRIVE_MUSIC_URL;
+                weddingAudio.play()
+                .then(() => {
+                    audioPlayedSuccessfully = true;
+                    console.log("Success: Drive backup music stream is playing.");
+                })
+                .catch(err => {
+                    console.warn("Drive backup stream failed. Advancing to Synth Fallback.", err);
+                    triggerNextAudioStage();
+                });
+            } else {
+                console.log("Activating Ambient Synthesizer fallback.");
+                synth.start();
+            }
         }
+
+        function triggerNextAudioStage() {
+            if (audioPlayedSuccessfully) return;
+            currentAudioStage++;
+            if (invitationOpened) {
+                playWeddingMusic();
+            }
+        }
+
+        // Catch load/resource error events securely
+        weddingAudio.addEventListener('error', (e) => {
+            console.warn("Audio loading error caught for stage " + currentAudioStage + ". Moving to next stage.");
+            triggerNextAudioStage();
+        });
     </script>
 
 
