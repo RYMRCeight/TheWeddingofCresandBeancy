@@ -575,6 +575,47 @@
                     <p class="text-[10px] tracking-widest text-gold-400 uppercase font-semibold">
                         ✦ Marzon Convention Center • Kalibo ✦
                     </p>
+
+                    <!-- RSVP FORM: replace GOOGLE_SHEETS_WEB_APP_URL in the script below after deploying google-apps-script.gs -->
+                    <form id="rsvpForm" class="mt-8 space-y-4 text-left" novalidate>
+                        <div class="text-center">
+                            <span class="font-cinzel text-xs tracking-[0.2em] text-gold-300 uppercase">Kindly confirm your seats</span>
+                            <p class="text-xs text-orchid-200 mt-2">Please let us know who will be joining us.</p>
+                        </div>
+
+                        <div>
+                            <label for="primaryGuestName" class="block text-[10px] tracking-widest text-gold-300 uppercase mb-1.5">Your full name</label>
+                            <input id="primaryGuestName" name="primaryGuestName" type="text" required autocomplete="name" placeholder="Juan dela Cruz"
+                                class="w-full rounded-lg border border-gold-500/30 bg-orchid-950/70 px-4 py-3 text-sm text-orchid-50 placeholder:text-orchid-400 focus:border-gold-300 focus:outline-none focus:ring-1 focus:ring-gold-300">
+                        </div>
+
+                        <div>
+                            <label for="guestCount" class="block text-[10px] tracking-widest text-gold-300 uppercase mb-1.5">Number of seats to confirm</label>
+                            <select id="guestCount" name="guestCount" required class="w-full rounded-lg border border-gold-500/30 bg-orchid-950/70 px-4 py-3 text-sm text-orchid-50 focus:border-gold-300 focus:outline-none focus:ring-1 focus:ring-gold-300">
+                                <option value="" disabled selected>Select 0, 1, or 2 seats</option>
+                                <option value="0">0 — We cannot attend</option>
+                                <option value="1">1 seat</option>
+                                <option value="2">2 seats</option>
+                            </select>
+                        </div>
+
+                        <div id="guestTwoField" class="hidden">
+                            <label for="guestTwoName" class="block text-[10px] tracking-widest text-gold-300 uppercase mb-1.5">Name of your second guest</label>
+                            <input id="guestTwoName" name="guestTwoName" type="text" autocomplete="name" placeholder="Guest's full name"
+                                class="w-full rounded-lg border border-gold-500/30 bg-orchid-950/70 px-4 py-3 text-sm text-orchid-50 placeholder:text-orchid-400 focus:border-gold-300 focus:outline-none focus:ring-1 focus:ring-gold-300">
+                        </div>
+
+                        <div>
+                            <label for="contactNumber" class="block text-[10px] tracking-widest text-gold-300 uppercase mb-1.5">Contact number <span class="normal-case tracking-normal text-orchid-300">(optional)</span></label>
+                            <input id="contactNumber" name="contactNumber" type="tel" autocomplete="tel" placeholder="09XX XXX XXXX"
+                                class="w-full rounded-lg border border-gold-500/30 bg-orchid-950/70 px-4 py-3 text-sm text-orchid-50 placeholder:text-orchid-400 focus:border-gold-300 focus:outline-none focus:ring-1 focus:ring-gold-300">
+                        </div>
+
+                        <button id="rsvpSubmitButton" type="submit" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-orchid-950 px-6 py-3 rounded-full text-[11px] font-bold tracking-wider uppercase shadow-lg hover:shadow-gold-500/20 transition-all duration-300 active:scale-95">
+                            <i data-lucide="heart" class="w-4 h-4"></i> Send RSVP
+                        </button>
+                        <p id="rsvpMessage" class="hidden text-center text-xs leading-relaxed" role="status" aria-live="polite"></p>
+                    </form>
                 </div>
             </div>
         </section>
@@ -775,6 +816,67 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        // 5. RSVP + Google Sheets integration
+        // Paste the Web App URL from your Google Apps Script deployment here.
+        const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyWjvMehzr64L7SN043X6u1-9QPsyklUCjBFA9KHlnM2wnXJMVuTSusStVWbYjf7vcA2Q/exec";
+
+        const rsvpForm = document.getElementById('rsvpForm');
+        const guestCount = document.getElementById('guestCount');
+        const guestTwoField = document.getElementById('guestTwoField');
+        const guestTwoName = document.getElementById('guestTwoName');
+        const rsvpMessage = document.getElementById('rsvpMessage');
+        const rsvpSubmitButton = document.getElementById('rsvpSubmitButton');
+
+        guestCount.addEventListener('change', () => {
+            const bringingSecondGuest = guestCount.value === '2';
+            guestTwoField.classList.toggle('hidden', !bringingSecondGuest);
+            guestTwoName.required = bringingSecondGuest;
+            if (!bringingSecondGuest) guestTwoName.value = '';
+        });
+
+        function showRsvpMessage(message, type) {
+            rsvpMessage.textContent = message;
+            rsvpMessage.className = `text-center text-xs leading-relaxed ${type === 'success' ? 'text-gold-200' : 'text-red-300'}`;
+        }
+
+        rsvpForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!rsvpForm.checkValidity()) {
+                rsvpForm.reportValidity();
+                return;
+            }
+
+            if (!GOOGLE_SHEETS_WEB_APP_URL) {
+                showRsvpMessage('RSVP form is ready, but the Google Sheets link has not been connected yet.', 'error');
+                return;
+            }
+
+            const formData = new FormData(rsvpForm);
+            formData.append('submittedAt', new Date().toISOString());
+            rsvpSubmitButton.disabled = true;
+            rsvpSubmitButton.innerHTML = '<span>Sending RSVP…</span>';
+
+            try {
+                // Apps Script accepts this simple cross-site request without exposing the spreadsheet.
+                await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                    body: new URLSearchParams(formData).toString()
+                });
+                showRsvpMessage('Thank you! Your RSVP has been sent to Cres & Beancy.', 'success');
+                rsvpForm.reset();
+                guestTwoField.classList.add('hidden');
+            } catch (error) {
+                showRsvpMessage('We could not send your RSVP. Please try again in a moment.', 'error');
+            } finally {
+                rsvpSubmitButton.disabled = false;
+                rsvpSubmitButton.innerHTML = '<i data-lucide="heart" class="w-4 h-4"></i> Send RSVP';
+                lucide.createIcons();
+            }
+        });
     </script>
 
 </body>
