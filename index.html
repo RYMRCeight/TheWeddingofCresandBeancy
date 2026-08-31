@@ -564,7 +564,7 @@
                     <div class="py-6 px-4 bg-orchid-950/60 rounded-xl inline-block border border-gold-500/30 shadow-inner">
                         <span class="block text-[10px] tracking-[0.25em] text-orchid-300 uppercase mb-2">Reserved in your honor</span>
                         <p class="font-cinzel text-2xl sm:text-3xl text-gold-200 font-bold tracking-wide">
-                            We have reserved 2 seats for you
+                            We have reserved <span id="reservedSeatsDisplay">2</span> seats for you
                         </p>
                     </div>
 
@@ -592,10 +592,10 @@
                         <div>
                             <label for="guestCount" class="block text-[10px] tracking-widest text-gold-300 uppercase mb-1.5">Number of seats to confirm</label>
                             <select id="guestCount" name="guestCount" required class="w-full rounded-lg border border-gold-500/30 bg-orchid-950/70 px-4 py-3 text-sm text-orchid-50 focus:border-gold-300 focus:outline-none focus:ring-1 focus:ring-gold-300">
-                                <option value="" disabled selected>Select 0, 1, or 2 seats</option>
+                                <option value="" disabled selected>Select your RSVP</option>
                                 <option value="0">0 — We cannot attend</option>
                                 <option value="1">1 seat</option>
-                                <option value="2">2 seats</option>
+                                <option value="2" id="twoSeatOption">2 seats</option>
                             </select>
                         </div>
 
@@ -821,12 +821,24 @@
         // Paste the Web App URL from your Google Apps Script deployment here.
         const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyWjvMehzr64L7SN043X6u1-9QPsyklUCjBFA9KHlnM2wnXJMVuTSusStVWbYjf7vcA2Q/exec";
 
+        // Use ?seats=1 for one-seat guests and ?seats=2 for two-seat guests.
+        // Without a link parameter, the invitation defaults to two reserved seats.
+        const requestedSeats = new URLSearchParams(window.location.search).get('seats');
+        const seatsReserved = requestedSeats === '1' ? 1 : 2;
+
         const rsvpForm = document.getElementById('rsvpForm');
         const guestCount = document.getElementById('guestCount');
         const guestTwoField = document.getElementById('guestTwoField');
         const guestTwoName = document.getElementById('guestTwoName');
         const rsvpMessage = document.getElementById('rsvpMessage');
         const rsvpSubmitButton = document.getElementById('rsvpSubmitButton');
+        const reservedSeatsDisplay = document.getElementById('reservedSeatsDisplay');
+        const twoSeatOption = document.getElementById('twoSeatOption');
+
+        reservedSeatsDisplay.textContent = seatsReserved;
+        if (seatsReserved === 1) {
+            twoSeatOption.remove();
+        }
 
         guestCount.addEventListener('change', () => {
             const bringingSecondGuest = guestCount.value === '2';
@@ -854,6 +866,7 @@
             }
 
             const formData = new FormData(rsvpForm);
+            formData.append('seatsReserved', seatsReserved.toString());
             formData.append('submittedAt', new Date().toISOString());
             rsvpSubmitButton.disabled = true;
             rsvpSubmitButton.innerHTML = '<span>Sending RSVP…</span>';
